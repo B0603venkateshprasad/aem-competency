@@ -1,3 +1,4 @@
+if (!globalThis.fetch) { globalThis.fetch = (...args) => import('node-fetch').then(({default: f}) => f(...args)); }
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
