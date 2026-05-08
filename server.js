@@ -10,13 +10,17 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'aem_competency_secret_2024';
 
-const WebSocket = require('ws');
+// Supabase client (REST only — no realtime needed)
+const supabaseOptions = {};
+try {
+  const WebSocket = require('ws');
+  supabaseOptions.realtime = { transport: WebSocket };
+} catch (e) { /* ws not available on serverless — that's OK */ }
 
-// Supabase client
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_KEY,
-  { realtime: { transport: WebSocket } }
+  supabaseOptions
 );
 
 // Middleware
