@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Create your AEM of Competency account and start preparing for interviews with curated Q&A.">
+  <title>AEM of Competency — Sign Up</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="bg-3d">
+    <div class="shape"></div><div class="shape"></div><div class="shape"></div>
+    <div class="shape"></div><div class="shape"></div><div class="shape"></div>
+  </div>
+
+  <div class="auth-container">
+    <div class="auth-card" id="signup-card">
+      <div class="auth-logo">
+        <div class="icon">🎯</div>
+        <h1>AEM of Competency</h1>
+        <p>Create your account</p>
+      </div>
+
+      <div class="error-msg" id="signup-error"></div>
+
+      <form id="signup-form">
+        <div class="form-group">
+          <label>Username</label>
+          <div class="input-wrapper">
+            <span class="input-icon">👤</span>
+            <input type="text" id="signup-username" placeholder="Choose a username" required autocomplete="username">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Email</label>
+          <div class="input-wrapper">
+            <span class="input-icon">📧</span>
+            <input type="email" id="signup-email" placeholder="Enter your email" required autocomplete="email">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Password</label>
+          <div class="input-wrapper">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="signup-password" placeholder="Create a password" required minlength="4" autocomplete="new-password">
+            <button type="button" class="toggle-password" onclick="togglePassword('signup-password', this)">👁</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary" id="signup-btn">Sign Up</button>
+      </form>
+
+      <div class="auth-footer">
+        Already have an account? <a href="/index.html">Sign in</a>
+      </div>
+
+      <div class="auth-brand">AEM of Competency — Interview Question Bank</div>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('aem_token');
+    if (token) {
+      fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token } })
+        .then(r => { if (r.ok) window.location.href = '/dashboard.html'; })
+        .catch(() => {});
+    }
+
+    function togglePassword(inputId, btn) {
+      const input = document.getElementById(inputId);
+      if (input.type === 'password') { input.type = 'text'; btn.textContent = '🙈'; }
+      else { input.type = 'password'; btn.textContent = '👁'; }
+    }
+
+    document.getElementById('signup-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errorEl = document.getElementById('signup-error');
+      const btn = document.getElementById('signup-btn');
+      errorEl.classList.remove('show');
+      btn.textContent = 'Creating account...';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: document.getElementById('signup-username').value.trim(),
+            email: document.getElementById('signup-email').value.trim(),
+            password: document.getElementById('signup-password').value
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        localStorage.setItem('aem_token', data.token);
+        localStorage.setItem('aem_user', JSON.stringify(data.user));
+        window.location.href = '/dashboard.html';
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.add('show');
+        btn.textContent = 'Sign Up';
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AEM of Competency Admin — Manage categories and questions.">
+  <title>AEM of Competency — Admin Panel</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .admin-page { margin-top: 60px; padding: 32px; max-width: 900px; margin-left: auto; margin-right: auto; position: relative; z-index: 1; }
+    .admin-page-header { margin-bottom: 28px; }
+    .admin-page-header h2 { font-size: 26px; font-weight: 700; }
+    .admin-page-header p { color: var(--text-secondary); font-size: 14px; margin-top: 4px; }
+
+    /* Tabs */
+    .ap-tabs { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+    .ap-tab { padding: 10px 20px; border-radius: var(--radius-sm); cursor: pointer; font-size: 14px; font-weight: 500; transition: var(--transition); background: none; border: none; color: var(--text-secondary); font-family: inherit; display: flex; align-items: center; gap: 8px; }
+    .ap-tab:hover { color: var(--text-primary); background: var(--bg-card); }
+    .ap-tab.active { background: var(--accent); color: white; box-shadow: 0 4px 12px var(--accent-glow); }
+    .ap-panel { display: none; }
+    .ap-panel.active { display: block; }
+
+    /* Add Category Box */
+    .add-cat-box { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 20px 24px; margin-bottom: 24px; }
+    .add-cat-box h4 { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+    .add-cat-row { display: flex; gap: 10px; }
+    .add-cat-row input { flex: 1; padding: 10px 14px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px; font-family: inherit; outline: none; transition: var(--transition); }
+    .add-cat-row input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    .add-cat-row input::placeholder { color: var(--text-muted); }
+    .btn-accent { padding: 10px 20px; background: var(--accent); color: white; border: none; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; transition: var(--transition); font-family: inherit; white-space: nowrap; }
+    .btn-accent:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 12px var(--accent-glow); }
+
+    /* Category List */
+    .cat-list { display: flex; flex-direction: column; gap: 8px; }
+    .cat-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius); overflow: hidden; transition: var(--transition); }
+    .cat-card:hover { border-color: var(--accent); }
+    .cat-header { display: flex; align-items: center; padding: 14px 20px; cursor: pointer; gap: 12px; transition: var(--transition); }
+    .cat-header:hover { background: var(--bg-card-hover); }
+    .cat-arrow { color: var(--text-muted); font-size: 12px; transition: transform 0.3s ease; min-width: 16px; }
+    .cat-card.open .cat-arrow { transform: rotate(90deg); }
+    .cat-name { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; flex: 1; }
+    .cat-count { font-size: 12px; color: var(--text-secondary); font-weight: 500; background: var(--bg-secondary); padding: 3px 10px; border-radius: 10px; }
+    .cat-actions { display: flex; align-items: center; gap: 6px; }
+    .cat-btn { background: none; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 500; cursor: pointer; transition: var(--transition); font-family: inherit; display: flex; align-items: center; gap: 4px; }
+    .cat-btn:hover { color: var(--text-primary); background: var(--bg-card-hover); border-color: var(--accent); }
+    .cat-btn.add-q { color: var(--accent); border-color: rgba(108,92,231,0.3); }
+    .cat-btn.add-q:hover { background: rgba(108,92,231,0.1); }
+    .cat-btn.edit-cat:hover { color: var(--warning); border-color: var(--warning); }
+    .cat-btn.del-cat:hover { color: var(--danger); border-color: var(--danger); background: rgba(255,107,107,0.1); }
+    .icon-btn { font-size: 14px; padding: 5px 8px; }
+
+    /* Category Body (Questions) */
+    .cat-body { display: none; border-top: 1px solid var(--border-color); }
+    .cat-card.open .cat-body { display: block; }
+
+    /* Add Question Form inside category */
+    .add-q-form { display: none; padding: 16px 20px; background: rgba(108,92,231,0.04); border-bottom: 1px solid var(--border-color); }
+    .add-q-form.show { display: block; animation: slideDown 0.3s ease-out; }
+    .add-q-form input, .add-q-form textarea { width: 100%; padding: 10px 14px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px; font-family: inherit; outline: none; margin-bottom: 10px; transition: var(--transition); }
+    .add-q-form textarea { min-height: 70px; resize: vertical; }
+    .add-q-form input:focus, .add-q-form textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    .add-q-form .form-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .btn-cancel { padding: 8px 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-secondary); border-radius: var(--radius-sm); font-size: 12px; cursor: pointer; font-family: inherit; transition: var(--transition); }
+    .btn-cancel:hover { color: var(--text-primary); }
+    .btn-save { padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: var(--transition); }
+    .btn-save:hover { background: var(--accent-hover); }
+
+    /* Question items inside category */
+    .q-item { display: flex; align-items: flex-start; padding: 12px 20px; border-bottom: 1px solid var(--border-color); transition: var(--transition); gap: 12px; }
+    .q-item:last-child { border-bottom: none; }
+    .q-item:hover { background: var(--bg-card-hover); }
+    .q-num { color: var(--text-muted); font-size: 12px; font-weight: 600; min-width: 24px; padding-top: 2px; }
+    .q-content { flex: 1; }
+    .q-content .q-text { font-size: 13px; font-weight: 500; line-height: 1.5; margin-bottom: 4px; }
+    .q-content .a-text { font-size: 12px; color: var(--text-muted); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .q-actions { display: flex; gap: 4px; }
+    .q-del { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 4px; transition: var(--transition); border-radius: 4px; }
+    .q-del:hover { color: var(--danger); background: rgba(255,107,107,0.1); }
+
+    .no-q { padding: 20px; text-align: center; color: var(--text-muted); font-size: 13px; }
+
+    /* Edit Category Modal */
+    .edit-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 500; align-items: center; justify-content: center; }
+    .edit-overlay.show { display: flex; }
+    .edit-modal { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 24px; width: 90%; max-width: 400px; box-shadow: var(--shadow-lg); }
+    .edit-modal h4 { margin-bottom: 16px; font-size: 16px; }
+    .edit-modal input { width: 100%; padding: 10px 14px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 14px; font-family: inherit; outline: none; margin-bottom: 16px; }
+    .edit-modal input:focus { border-color: var(--accent); }
+    .edit-modal .form-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  </style>
+</head>
+<body>
+  <div class="bg-3d">
+    <div class="shape"></div><div class="shape"></div><div class="shape"></div>
+    <div class="shape"></div><div class="shape"></div><div class="shape"></div>
+  </div>
+
+  <nav class="navbar">
+    <div class="nav-left">
+      <a href="/dashboard.html" class="nav-brand"><div class="brand-icon">🎯</div><span>AEM of Competency</span></a>
+      <div class="nav-links">
+        <a href="/dashboard.html" class="nav-link">📋 Questions</a>
+        <a href="/admin.html" class="nav-link active">⚙️ Admin</a>
+      </div>
+    </div>
+    <div class="nav-right">
+      <div class="user-badge"><div class="user-avatar" id="user-avatar">A</div><span class="username" id="display-username">admin</span><span class="admin-tag">ADMIN</span></div>
+      <button class="btn-signout" id="signout-btn">↗ Sign out</button>
+    </div>
+  </nav>
+
+  <div class="admin-page">
+    <div class="admin-page-header">
+      <h2>Admin Panel</h2>
+      <p>Manage categories &amp; questions</p>
+    </div>
+
+    <div class="ap-tabs">
+      <button class="ap-tab active" data-tab="categories">📋 Categories</button>
+      <button class="ap-tab" data-tab="users">👥 Users</button>
+    </div>
+
+    <!-- Categories Panel -->
+    <div class="ap-panel active" id="panel-categories">
+      <div class="add-cat-box">
+        <h4>Add New Category</h4>
+        <div class="add-cat-row">
+          <input type="text" id="new-cat-name" placeholder="Category name (e.g. Python, SQL...)">
+          <button class="btn-accent" id="add-cat-btn">+ Add</button>
+        </div>
+      </div>
+      <div class="cat-list" id="cat-list">
+        <div class="loading"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- Users Panel -->
+    <div class="ap-panel" id="panel-users">
+      <div class="user-list">
+        <div class="user-list-header">ALL USERS (<span id="user-count">0</span>)</div>
+        <div id="users-container"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Category Modal -->
+  <div class="edit-overlay" id="edit-overlay">
+    <div class="edit-modal">
+      <h4>Edit Category</h4>
+      <input type="text" id="edit-cat-input" placeholder="Category name">
+      <div class="form-actions">
+        <button class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+        <button class="btn-save" id="save-edit-btn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const token = localStorage.getItem('aem_token');
+    const user = JSON.parse(localStorage.getItem('aem_user') || 'null');
+    if (!token || !user || user.role !== 'admin') { window.location.href = '/dashboard.html'; }
+
+    document.getElementById('display-username').textContent = user.username;
+    document.getElementById('user-avatar').textContent = user.username[0].toUpperCase();
+    document.getElementById('signout-btn').addEventListener('click', () => { localStorage.clear(); window.location.href = '/index.html'; });
+
+    const API = (url, opts = {}) => {
+      opts.headers = { ...opts.headers, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+      return fetch(url, opts).then(async r => {
+        if (r.status === 401) { localStorage.clear(); window.location.href = '/index.html'; }
+        const data = await r.json(); if (!r.ok) throw new Error(data.error); return data;
+      });
+    };
+
+    function showToast(msg, type = 'success') {
+      const t = document.getElementById('toast'); t.textContent = msg; t.className = 'toast show ' + type;
+      setTimeout(() => { t.className = 'toast'; }, 3000);
+    }
+    function esc(text) { const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
+
+    // Tabs
+    document.querySelectorAll('.ap-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.ap-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.ap-panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    // ── Categories & Questions ──
+    let allTopics = [];
+    let allQuestions = [];
+
+    async function loadAll() {
+      try {
+        allTopics = await API('/api/topics');
+        allQuestions = await API('/api/questions');
+        renderCategories();
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+
+    function renderCategories() {
+      const container = document.getElementById('cat-list');
+      if (!allTopics.length) { container.innerHTML = '<div class="no-q">No categories yet. Add one above!</div>'; return; }
+
+      container.innerHTML = allTopics.map(t => {
+        const tQuestions = allQuestions.filter(q => q.topicId === t.id);
+        return `
+          <div class="cat-card" id="cat-${t.id}">
+            <div class="cat-header" onclick="toggleCat('${t.id}')">
+              <span class="cat-arrow">▶</span>
+              <span class="cat-name">${esc(t.name)}</span>
+              <span class="cat-count">${tQuestions.length} Q</span>
+              <div class="cat-actions" onclick="event.stopPropagation()">
+                <button class="cat-btn add-q" onclick="toggleAddQ('${t.id}')">+ Add Q</button>
+                <button class="cat-btn icon-btn edit-cat" onclick="openEditModal('${t.id}','${esc(t.name)}')" title="Edit">✏️</button>
+                <button class="cat-btn icon-btn del-cat" onclick="deleteCat('${t.id}')" title="Delete">🗑️</button>
+              </div>
+            </div>
+            <div class="cat-body">
+              <div class="add-q-form" id="addq-${t.id}">
+                <input type="text" id="qinput-${t.id}" placeholder="Enter the question">
+                <textarea id="ainput-${t.id}" placeholder="Enter the detailed answer"></textarea>
+                <div class="form-actions">
+                  <button class="btn-cancel" onclick="toggleAddQ('${t.id}')">Cancel</button>
+                  <button class="btn-save" onclick="saveQuestion('${t.id}')">Add Question</button>
+                </div>
+              </div>
+              ${tQuestions.length ? tQuestions.map((q, i) => `
+                <div class="q-item">
+                  <span class="q-num">${i + 1}.</span>
+                  <div class="q-content">
+                    <div class="q-text">${esc(q.question)}</div>
+                    <div class="a-text">${esc(q.answer)}</div>
+                  </div>
+                  <div class="q-actions">
+                    <button class="q-del" onclick="deleteQ('${q.id}')" title="Delete">🗑️</button>
+                  </div>
+                </div>
+              `).join('') : '<div class="no-q">No questions in this category</div>'}
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function toggleCat(id) {
+      document.getElementById('cat-' + id).classList.toggle('open');
+    }
+
+    function toggleAddQ(id) {
+      const form = document.getElementById('addq-' + id);
+      form.classList.toggle('show');
+      // Ensure category is open
+      if (form.classList.contains('show')) {
+        document.getElementById('cat-' + id).classList.add('open');
+      }
+    }
+
+    async function saveQuestion(topicId) {
+      const question = document.getElementById('qinput-' + topicId).value.trim();
+      const answer = document.getElementById('ainput-' + topicId).value.trim();
+      if (!question || !answer) return showToast('Fill all fields', 'error');
+      try {
+        await API('/api/questions', { method: 'POST', body: JSON.stringify({ topicId, question, answer }) });
+        showToast('Question added!');
+        loadAll();
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+
+    async function deleteQ(id) {
+      if (!confirm('Delete this question?')) return;
+      try { await API('/api/questions/' + id, { method: 'DELETE' }); showToast('Question deleted'); loadAll(); }
+      catch (err) { showToast(err.message, 'error'); }
+    }
+
+    // Add Category
+    document.getElementById('add-cat-btn').addEventListener('click', async () => {
+      const name = document.getElementById('new-cat-name').value.trim();
+      if (!name) return showToast('Enter category name', 'error');
+      try { await API('/api/topics', { method: 'POST', body: JSON.stringify({ name }) }); document.getElementById('new-cat-name').value = ''; showToast('Category added!'); loadAll(); }
+      catch (err) { showToast(err.message, 'error'); }
+    });
+
+    // Edit Category Modal
+    let editingCatId = null;
+    function openEditModal(id, name) {
+      editingCatId = id;
+      document.getElementById('edit-cat-input').value = name;
+      document.getElementById('edit-overlay').classList.add('show');
+    }
+    function closeEditModal() {
+      document.getElementById('edit-overlay').classList.remove('show');
+      editingCatId = null;
+    }
+    document.getElementById('save-edit-btn').addEventListener('click', async () => {
+      const name = document.getElementById('edit-cat-input').value.trim();
+      if (!name) return showToast('Enter category name', 'error');
+      try { await API('/api/topics/' + editingCatId, { method: 'PUT', body: JSON.stringify({ name }) }); showToast('Category updated!'); closeEditModal(); loadAll(); }
+      catch (err) { showToast(err.message, 'error'); }
+    });
+
+    async function deleteCat(id) {
+      if (!confirm('Delete this category and all its questions?')) return;
+      try { await API('/api/topics/' + id, { method: 'DELETE' }); showToast('Category deleted'); loadAll(); }
+      catch (err) { showToast(err.message, 'error'); }
+    }
+
+    // ── Users ──
+    async function loadUsers() {
+      try {
+        const users = await API('/api/users');
+        document.getElementById('user-count').textContent = users.length;
+        const container = document.getElementById('users-container');
+        if (!users.length) { container.innerHTML = '<div style="padding:20px;color:var(--text-muted)">No users</div>'; return; }
+        container.innerHTML = users.map(u => `
+          <div class="user-row">
+            <div class="user-info">
+              <div class="avatar">${u.username[0].toUpperCase()}</div>
+              <div><div class="name">${esc(u.username)}</div><div class="email">${esc(u.email || '')}</div></div>
+            </div>
+            <div class="user-actions">
+              <span class="status-badge ${u.status}">${u.status === 'approved' ? '✅ Approved' : '🚫 Revoked'}</span>
+              ${u.role !== 'admin' ? `
+                <button class="btn-sm" onclick="toggleUserStatus('${u.id}','${u.status === 'approved' ? 'revoked' : 'approved'}')">${u.status === 'approved' ? 'Revoke' : 'Approve'}</button>
+                <button class="btn-sm danger" onclick="deleteUser('${u.id}')">🗑</button>
+              ` : ''}
+            </div>
+          </div>
+        `).join('');
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+
+    async function toggleUserStatus(id, status) {
+      try { await API('/api/users/' + id + '/status', { method: 'PUT', body: JSON.stringify({ status }) }); showToast('User ' + status); loadUsers(); }
+      catch (err) { showToast(err.message, 'error'); }
+    }
+
+    async function deleteUser(id) {
+      if (!confirm('Delete this user?')) return;
+      try { await API('/api/users/' + id, { method: 'DELETE' }); showToast('User deleted'); loadUsers(); }
+      catch (err) { showToast(err.message, 'error'); }
+    }
+
+    // Init
+    loadAll();
+    loadUsers();
+  </script>
+</body>
+</html>
