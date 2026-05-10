@@ -220,7 +220,7 @@ app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'adm
 
 // ── Start Server ─────────────────────────────────────────────────
 if (process.env.VERCEL !== '1') {
-  app.listen(PORT, () => console.log(`\n  🚀 AEM of Competency running at http://localhost:${PORT}\n`));
+  app.listen(PORT, () => console.log(`\n  🚀 AEM FE Competency running at http://localhost:${PORT}\n`));
 }
 
 module.exports = app;

@@ -1,7 +1,7 @@
 {
   "name": "aem-competency",
   "version": "1.0.0",
-  "description": "AEM of Competency - Q&A Platform",
+  "description": "AEM FE Competency - Q&A Platform",
   "main": "app.js",
   "engines": {
     "node": "20.x"
