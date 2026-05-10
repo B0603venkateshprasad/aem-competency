@@ -65,10 +65,9 @@ app.post('/api/auth/signup', async (req, res) => {
     try { await supa('users', { filters: `email=ilike.${email}`, single: true }); return res.status(400).json({ error: 'Email registered' }); } catch (e) {}
 
     const hashed = await bcrypt.hash(password, 10);
-    const user = await supa('users', { method: 'POST', body: { username, email, password: hashed, role: 'user', status: 'approved' }, single: true, select: 'id,username,email,role,status' });
+    const user = await supa('users', { method: 'POST', body: { username, email, password: hashed, role: 'user', status: 'pending' }, single: true, select: 'id,username,email,role,status' });
 
-    const token = jwt.sign({ id: user.id, username: user.username, role: user.role, email: user.email }, JWT_SECRET, { expiresIn: '24h' });
-    res.json({ token, user });
+    res.json({ message: 'Registration successful! Please wait for admin approval before you can sign in.', pending: true, user: { username: user.username, email: user.email } });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -82,6 +81,7 @@ app.post('/api/auth/login', async (req, res) => {
     catch (e) { return res.status(401).json({ error: 'Invalid credentials' }); }
 
     if (!await bcrypt.compare(password, user.password)) return res.status(401).json({ error: 'Invalid credentials' });
+    if (user.status === 'pending') return res.status(403).json({ error: 'Your account is pending admin approval. Please check back later.' });
     if (user.status === 'revoked') return res.status(403).json({ error: 'Account revoked. Contact admin.' });
 
     const token = jwt.sign({ id: user.id, username: user.username, role: user.role, email: user.email }, JWT_SECRET, { expiresIn: '24h' });
@@ -192,7 +192,7 @@ app.get('/api/users', authMiddleware, adminMiddleware, async (req, res) => {
 app.put('/api/users/:id/status', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const { status } = req.body;
-    if (!['approved', 'revoked'].includes(status)) return res.status(400).json({ error: 'Invalid status' });
+    if (!['approved', 'revoked', 'pending'].includes(status)) return res.status(400).json({ error: 'Invalid status' });
 
     const user = await supa('users', { filters: `id=eq.${req.params.id}`, single: true, select: 'role' });
     if (user.role === 'admin') return res.status(400).json({ error: 'Cannot change admin status' });
@@ -210,6 +210,7 @@ app.delete('/api/users/:id', authMiddleware, adminMiddleware, async (req, res) =
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 
 // ── SPA Fallback ─────────────────────────────────────────────────
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));

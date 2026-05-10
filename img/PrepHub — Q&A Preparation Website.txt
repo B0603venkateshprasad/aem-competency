@@ -1,0 +1,116 @@
+PrepHub — Q&A Preparation Website
+A full-stack Q&A preparation platform with 3D design elements, authentication, topic-based questions, and admin management — inspired by the reference screenshots.
+
+Key Features
+Feature	Description
+Login/Signup	Dark themed glassmorphism login & signup pages with 3D floating card
+Questions Page	Browse questions by topic with expandable answers
+Admin Dashboard	Manage users (approve/revoke/delete) and questions (CRUD)
+Authentication	JWT-based auth with admin role (admin/1234)
+3D Design	CSS 3D transforms, parallax, floating animations, glassmorphism
+Dark Theme	Deep navy/dark theme with purple accent colors
+Tech Stack
+Backend: Node.js + Express
+Frontend: Vanilla HTML/CSS/JS (served by Express)
+Storage: JSON file-based database (no external DB)
+Auth: JWT tokens with bcrypt password hashing
+Design: 3D CSS transforms, glassmorphism, micro-animations
+Proposed Changes
+Backend — server.js
+Core Express server with:
+
+JWT authentication middleware
+REST API endpoints for auth, users, questions, topics
+Static file serving for frontend
+JSON file database read/write helpers
+API Endpoints:
+
+Method	Route	Access	Description
+POST	/api/auth/login	Public	Login with username/password
+POST	/api/auth/signup	Public	Register new user
+GET	/api/auth/me	Auth	Get current user info
+GET	/api/topics	Auth	List all topics
+POST	/api/topics	Admin	Create topic
+DELETE	/api/topics/:id	Admin	Delete topic
+GET	/api/questions	Auth	List questions (filter by topic)
+POST	/api/questions	Admin	Create question
+PUT	/api/questions/:id	Admin	Update question
+DELETE	/api/questions/:id	Admin	Delete question
+GET	/api/users	Admin	List all users
+PUT	/api/users/:id/status	Admin	Approve/revoke user
+DELETE	/api/users/:id	Admin	Delete user
+Database — data/db.json
+JSON file with pre-seeded data:
+
+Admin user (username: admin, password: hashed 1234)
+Sample topics: JavaScript, React, Node.js, TypeScript, System Design
+~15 sample questions with answers
+Frontend Files
+[NEW] public/index.html — Login Page
+3D floating card with glassmorphism effect
+PrepHub logo with animated icon
+Username/password fields with icons
+Sign In button + Sign Up link
+3D background with floating geometric shapes
+[NEW] public/signup.html — Signup Page
+Similar 3D design as login
+Username, email, password fields
+Sign Up button + Sign In link
+[NEW] public/dashboard.html — Main Questions Page
+Navbar: PrepHub logo, Questions link, Admin link (admin only), user badge, dark mode toggle, sign out
+Sidebar: Topic list with question counts, "All Topics" default
+Main Content: Questions grouped by topic, numbered, with "Show Answer" expandable buttons
+Search: Filter questions by text
+Responsive layout
+[NEW] public/admin.html — Admin Dashboard
+Tabs: Users | Questions
+Users Tab: List all users with status (Approved/Revoked), approve/revoke/delete buttons
+Questions Tab: Add new topic, add new question to topic, edit/delete questions
+[NEW] public/css/style.css — Main Stylesheet
+CSS custom properties (design tokens)
+Dark theme with navy/purple palette
+3D transforms and perspective
+Glassmorphism effects
+Floating animations & micro-interactions
+Responsive grid layouts
+[NEW] public/js/auth.js — Auth Module
+Login/signup form handlers
+JWT token management (localStorage)
+Auth state checking & redirects
+[NEW] public/js/app.js — Main App Logic
+Questions fetching & rendering
+Topic filtering & sidebar
+Search functionality
+Show/hide answers
+User badge & sign out
+[NEW] public/js/admin.js — Admin Logic
+User management CRUD
+Question/topic management CRUD
+Tab switching
+Configuration — package.json
+Node.js project with dependencies:
+
+express — web server
+jsonwebtoken — JWT auth
+bcryptjs — password hashing
+cors — CORS support
+3D Design Elements
+Login card: 3D perspective tilt on hover, floating animation
+Background: Animated 3D geometric shapes (cubes, spheres) using CSS transforms
+Navbar: Subtle 3D depth with box-shadow layers
+Question cards: 3D lift effect on hover
+Buttons: 3D press effect on click
+Sidebar: Parallax scroll depth effect
+Page transitions: 3D flip/slide animations
+Verification Plan
+Automated Tests
+Start server and verify all API endpoints respond correctly
+Test login with admin/1234 credentials
+Test signup flow
+Test question CRUD operations
+Browser Tests
+Navigate to login page, verify 3D design renders
+Login as admin, verify admin dashboard access
+Sign up as new user, verify questions page access
+Test topic filtering, search, show/hide answers
+Test admin user management and question management

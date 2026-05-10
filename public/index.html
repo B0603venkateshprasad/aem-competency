@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,8 +9,7 @@
 </head>
 <body>
   <div class="bg-3d">
-    <div class="shape"></div><div class="shape"></div><div class="shape"></div>
-    <div class="shape"></div><div class="shape"></div><div class="shape"></div>
+    <canvas id="galaxy-canvas" style="position: absolute; top:0; left:0; width:100%; height:100%;"></canvas>
   </div>
 
   <div class="auth-container">
@@ -53,6 +52,10 @@
   </div>
 
   <script>
+    // Apply saved theme
+    const savedTheme = localStorage.getItem('aem_theme');
+    if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+
     // Check if already logged in
     const token = localStorage.getItem('aem_token');
     if (token) {
@@ -98,5 +101,6 @@
       }
     });
   </script>
+  <script src="/js/galaxy.js"></script>
 </body>
 </html>

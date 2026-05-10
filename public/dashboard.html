@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,14 +8,13 @@
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <div class="bg-3d">
-    <div class="shape"></div><div class="shape"></div><div class="shape"></div>
-    <div class="shape"></div><div class="shape"></div><div class="shape"></div>
-  </div>
+
 
   <!-- Navbar -->
   <nav class="navbar" id="navbar">
     <div class="nav-left">
+      <button class="hamburger-btn" id="hamburger-btn">☰</button>
+      <button class="desktop-sidebar-toggle" id="desktop-sidebar-toggle" title="Toggle Sidebar">☰</button>
       <a href="/dashboard.html" class="nav-brand">
         <div class="brand-icon">🎯</div>
         <span>AEM of Competency</span>
@@ -35,6 +34,12 @@
       <button class="btn-signout" id="signout-btn">↗ Sign out</button>
     </div>
   </nav>
+
+  <!-- Mobile Menu -->
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="/dashboard.html" class="nav-link active">📋 Questions</a>
+    <a href="/admin.html" class="nav-link" id="nav-admin-mobile" style="display:none;">⚙️ Admin</a>
+  </div>
 
   <!-- Dashboard -->
   <div class="dashboard">
@@ -68,6 +73,33 @@
   <div class="toast" id="toast"></div>
 
   <script>
+    // ── Theme ──
+    const savedTheme = localStorage.getItem('aem_theme');
+    if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+    const themeBtn = document.getElementById('theme-toggle');
+    themeBtn.textContent = (document.documentElement.getAttribute('data-theme') === 'light') ? '☀️' : '🌙';
+    themeBtn.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme');
+      const next = current === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('aem_theme', next);
+      themeBtn.textContent = next === 'light' ? '☀️' : '🌙';
+    });
+
+    // ── Hamburger Menu ──
+    document.getElementById('hamburger-btn').addEventListener('click', () => {
+      document.getElementById('mobile-menu').classList.toggle('open');
+    });
+
+    // ── Desktop Sidebar Toggle ──
+    const desktopToggle = document.getElementById('desktop-sidebar-toggle');
+    if (desktopToggle) {
+      desktopToggle.addEventListener('click', () => {
+        document.getElementById('sidebar').classList.toggle('collapsed');
+        document.getElementById('main-content').classList.toggle('expanded');
+      });
+    }
+
     // ── Auth Check ──
     const token = localStorage.getItem('aem_token');
     const user = JSON.parse(localStorage.getItem('aem_user') || 'null');
@@ -77,8 +109,9 @@
       opts.headers = { ...opts.headers, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
       return fetch(url, opts).then(async r => {
         if (r.status === 401) { localStorage.clear(); window.location.href = '/index.html'; }
-        const data = await r.json();
-        if (!r.ok) throw new Error(data.error);
+        const text = await r.text();
+        const data = text ? JSON.parse(text) : { success: true };
+        if (!r.ok) throw new Error(data.error || 'Request failed');
         return data;
       });
     };
@@ -89,6 +122,8 @@
     if (user.role === 'admin') {
       document.getElementById('admin-tag').style.display = 'inline';
       document.getElementById('nav-admin').style.display = 'flex';
+      const mobileAdmin = document.getElementById('nav-admin-mobile');
+      if (mobileAdmin) mobileAdmin.style.display = 'flex';
     }
 
     document.getElementById('signout-btn').addEventListener('click', () => {
@@ -101,6 +136,10 @@
     let allQuestions = [];
     let activeTopic = null;
     let searchTimeout = null;
+    let currentPage = 1;
+    const pageSize = 20;
+
+
 
     // ── Load Data ──
     async function loadTopics() {
@@ -119,6 +158,7 @@
         if (params.length) url += '?' + params.join('&');
 
         allQuestions = await API(url);
+        currentPage = 1;
         renderQuestions();
       } catch (err) { showToast(err.message, 'error'); }
     }
@@ -152,6 +192,12 @@
     // ── Render Questions ──
     function renderQuestions() {
       const container = document.getElementById('questions-container');
+      
+      // Animation trigger
+      container.classList.remove('fade-slide-up');
+      void container.offsetWidth; // trigger reflow
+      container.classList.add('fade-slide-up');
+
       document.getElementById('result-count').textContent = allQuestions.length + ' results';
 
       if (!allQuestions.length) {
@@ -159,15 +205,21 @@
         return;
       }
 
+      // Pagination slice
+      const startIndex = (currentPage - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedQuestions = allQuestions.slice(startIndex, endIndex);
+      const totalPages = Math.ceil(allQuestions.length / pageSize);
+
       // Group by topic
       const grouped = {};
-      allQuestions.forEach(q => {
+      paginatedQuestions.forEach(q => {
         if (!grouped[q.topicName]) grouped[q.topicName] = [];
         grouped[q.topicName].push(q);
       });
 
       let html = '';
-      let globalIndex = 1;
+      let globalIndex = startIndex + 1;
       Object.entries(grouped).forEach(([topicName, questions]) => {
         html += `<div class="topic-section">
           <div class="topic-section-header">
@@ -194,16 +246,39 @@
         html += '</div>';
       });
 
+      if (totalPages > 1) {
+        html += `<div class="pagination">
+          <button class="btn-page" onclick="changePage(-1)" ${currentPage === 1 ? 'disabled' : ''}>← Previous</button>
+          <span class="page-info">Page ${currentPage} of ${totalPages}</span>
+          <button class="btn-page" onclick="changePage(1)" ${currentPage === totalPages ? 'disabled' : ''}>Next →</button>
+        </div>`;
+      }
+
       container.innerHTML = html;
+    }
+
+    function changePage(dir) {
+      currentPage += dir;
+      renderQuestions();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function toggleAnswer(id) {
       const answerEl = document.getElementById('answer-' + id);
       const btn = document.querySelector(`#qcard-${id} .btn-show-answer`);
+      
       if (answerEl.classList.contains('show')) {
         answerEl.classList.remove('show');
         btn.innerHTML = 'Show Answer ▾';
       } else {
+        // Close all other open answers
+        document.querySelectorAll('.answer-content.show').forEach(el => {
+          el.classList.remove('show');
+          const siblingBtnId = el.id.replace('answer-', '');
+          const siblingBtn = document.querySelector(`#qcard-${siblingBtnId} .btn-show-answer`);
+          if (siblingBtn) siblingBtn.innerHTML = 'Show Answer ▾';
+        });
+
         answerEl.classList.add('show');
         btn.innerHTML = 'Hide Answer ▴';
       }

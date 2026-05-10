@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -90,13 +90,11 @@
   </style>
 </head>
 <body>
-  <div class="bg-3d">
-    <div class="shape"></div><div class="shape"></div><div class="shape"></div>
-    <div class="shape"></div><div class="shape"></div><div class="shape"></div>
-  </div>
+
 
   <nav class="navbar">
     <div class="nav-left">
+      <button class="hamburger-btn" id="hamburger-btn">☰</button>
       <a href="/dashboard.html" class="nav-brand"><div class="brand-icon">🎯</div><span>AEM of Competency</span></a>
       <div class="nav-links">
         <a href="/dashboard.html" class="nav-link">📋 Questions</a>
@@ -105,9 +103,16 @@
     </div>
     <div class="nav-right">
       <div class="user-badge"><div class="user-avatar" id="user-avatar">A</div><span class="username" id="display-username">admin</span><span class="admin-tag">ADMIN</span></div>
+      <button class="btn-icon" id="theme-toggle" title="Toggle theme">🌙</button>
       <button class="btn-signout" id="signout-btn">↗ Sign out</button>
     </div>
   </nav>
+
+  <!-- Mobile Menu -->
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="/dashboard.html" class="nav-link">📋 Questions</a>
+    <a href="/admin.html" class="nav-link active">⚙️ Admin</a>
+  </div>
 
   <div class="admin-page">
     <div class="admin-page-header">
@@ -155,9 +160,39 @@
     </div>
   </div>
 
+  <!-- Confirm Modal -->
+  <div class="edit-overlay" id="confirm-overlay">
+    <div class="edit-modal">
+      <h4 id="confirm-title">Confirm</h4>
+      <p id="confirm-message" style="color:var(--text-secondary);font-size:14px;margin-bottom:20px;"></p>
+      <div class="form-actions">
+        <button class="btn-cancel" id="confirm-cancel-btn">Cancel</button>
+        <button class="btn-save" id="confirm-ok-btn" style="background:var(--danger)">Delete</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <script>
+    // ── Theme ──
+    const savedTheme = localStorage.getItem('aem_theme');
+    if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+    const themeBtn = document.getElementById('theme-toggle');
+    themeBtn.textContent = (document.documentElement.getAttribute('data-theme') === 'light') ? '☀️' : '🌙';
+    themeBtn.addEventListener('click', () => {
+      const curr = document.documentElement.getAttribute('data-theme');
+      const next = curr === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('aem_theme', next);
+      themeBtn.textContent = next === 'light' ? '☀️' : '🌙';
+    });
+
+    // ── Hamburger ──
+    document.getElementById('hamburger-btn').addEventListener('click', () => {
+      document.getElementById('mobile-menu').classList.toggle('open');
+    });
+
     const token = localStorage.getItem('aem_token');
     const user = JSON.parse(localStorage.getItem('aem_user') || 'null');
     if (!token || !user || user.role !== 'admin') { window.location.href = '/dashboard.html'; }
@@ -170,7 +205,10 @@
       opts.headers = { ...opts.headers, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
       return fetch(url, opts).then(async r => {
         if (r.status === 401) { localStorage.clear(); window.location.href = '/index.html'; }
-        const data = await r.json(); if (!r.ok) throw new Error(data.error); return data;
+        const text = await r.text();
+        const data = text ? JSON.parse(text) : { success: true };
+        if (!r.ok) throw new Error(data.error || 'Request failed');
+        return data;
       });
     };
 
@@ -270,8 +308,28 @@
       } catch (err) { showToast(err.message, 'error'); }
     }
 
+    // Custom confirm modal
+    let confirmResolver = null;
+    function confirmAction(title, message) {
+      return new Promise((resolve) => {
+        confirmResolver = resolve;
+        document.getElementById('confirm-title').textContent = title;
+        document.getElementById('confirm-message').textContent = message;
+        document.getElementById('confirm-overlay').classList.add('show');
+      });
+    }
+    document.getElementById('confirm-ok-btn').addEventListener('click', () => {
+      document.getElementById('confirm-overlay').classList.remove('show');
+      if (confirmResolver) { confirmResolver(true); confirmResolver = null; }
+    });
+    document.getElementById('confirm-cancel-btn').addEventListener('click', () => {
+      document.getElementById('confirm-overlay').classList.remove('show');
+      if (confirmResolver) { confirmResolver(false); confirmResolver = null; }
+    });
+
     async function deleteQ(id) {
-      if (!confirm('Delete this question?')) return;
+      const ok = await confirmAction('Delete Question', 'Are you sure you want to delete this question?');
+      if (!ok) return;
       try { await API('/api/questions/' + id, { method: 'DELETE' }); showToast('Question deleted'); loadAll(); }
       catch (err) { showToast(err.message, 'error'); }
     }
@@ -303,7 +361,8 @@
     });
 
     async function deleteCat(id) {
-      if (!confirm('Delete this category and all its questions?')) return;
+      const ok = await confirmAction('Delete Category', 'Delete this category and all its questions?');
+      if (!ok) return;
       try { await API('/api/topics/' + id, { method: 'DELETE' }); showToast('Category deleted'); loadAll(); }
       catch (err) { showToast(err.message, 'error'); }
     }
@@ -322,9 +381,11 @@
               <div><div class="name">${esc(u.username)}</div><div class="email">${esc(u.email || '')}</div></div>
             </div>
             <div class="user-actions">
-              <span class="status-badge ${u.status}">${u.status === 'approved' ? '✅ Approved' : '🚫 Revoked'}</span>
+              <span class="status-badge ${u.status}">${u.status === 'approved' ? '✅ Approved' : u.status === 'pending' ? '⏳ Pending' : '🚫 Revoked'}</span>
               ${u.role !== 'admin' ? `
-                <button class="btn-sm" onclick="toggleUserStatus('${u.id}','${u.status === 'approved' ? 'revoked' : 'approved'}')">${u.status === 'approved' ? 'Revoke' : 'Approve'}</button>
+                ${u.status === 'pending' ? `<button class="btn-sm" style="border-color:rgba(0,214,143,0.4);color:var(--success)" onclick="toggleUserStatus('${u.id}','approved')">Approve</button>` : ''}
+                ${u.status === 'approved' ? `<button class="btn-sm" onclick="toggleUserStatus('${u.id}','revoked')">Revoke</button>` : ''}
+                ${u.status === 'revoked' ? `<button class="btn-sm" onclick="toggleUserStatus('${u.id}','approved')">Approve</button>` : ''}
                 <button class="btn-sm danger" onclick="deleteUser('${u.id}')">🗑</button>
               ` : ''}
             </div>
@@ -339,7 +400,8 @@
     }
 
     async function deleteUser(id) {
-      if (!confirm('Delete this user?')) return;
+      const ok = await confirmAction('Delete User', 'Are you sure you want to delete this user?');
+      if (!ok) return;
       try { await API('/api/users/' + id, { method: 'DELETE' }); showToast('User deleted'); loadUsers(); }
       catch (err) { showToast(err.message, 'error'); }
     }

@@ -1,16 +1,96 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Create your AEM of Competency account and start preparing for interviews with curated Q&A.">
   <title>AEM of Competency — Sign Up</title>
   <link rel="stylesheet" href="/css/style.css">
+  <style>
+    /* Success Popup Modal */
+    .popup-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
+      z-index: 1000; align-items: center; justify-content: center;
+      animation: fadeIn 0.3s ease;
+    }
+    .popup-overlay.show { display: flex; }
+
+    .popup-card {
+      background: var(--bg-card); border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg); padding: 48px 40px;
+      width: 90%; max-width: 440px; text-align: center;
+      box-shadow: 0 24px 80px rgba(108,92,231,0.25);
+      animation: popupSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      position: relative; overflow: hidden;
+    }
+    .popup-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+      background: linear-gradient(90deg, var(--accent), #00d68f, var(--accent));
+      background-size: 200% 100%;
+      animation: shimmer 2s ease-in-out infinite;
+    }
+
+    @keyframes popupSlideIn {
+      from { opacity: 0; transform: translateY(30px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; } to { opacity: 1; }
+    }
+    @keyframes shimmer {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    .popup-icon {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: linear-gradient(135deg, rgba(0,214,143,0.15), rgba(0,214,143,0.05));
+      border: 2px solid rgba(0,214,143,0.3);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 36px; margin-bottom: 20px;
+      animation: successPulse 2s ease-in-out infinite;
+    }
+    @keyframes successPulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0,214,143,0.3); }
+      50% { transform: scale(1.05); box-shadow: 0 0 0 12px rgba(0,214,143,0); }
+    }
+
+    .popup-title {
+      font-size: 22px; font-weight: 700; margin-bottom: 12px;
+      color: var(--success);
+    }
+    .popup-message {
+      font-size: 14px; line-height: 1.7; color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+    .popup-hint {
+      font-size: 12px; color: var(--text-muted);
+      margin-bottom: 28px; display: flex; align-items: center;
+      justify-content: center; gap: 6px;
+    }
+    .popup-hint .dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--warning);
+      animation: blink 1.5s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1}50%{opacity:0.3} }
+
+    .btn-goto-login {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 14px 32px; background: var(--accent); color: white;
+      border: none; border-radius: var(--radius-sm); font-size: 15px;
+      font-weight: 600; cursor: pointer; text-decoration: none;
+      transition: var(--transition); font-family: inherit;
+    }
+    .btn-goto-login:hover {
+      background: var(--accent-hover); transform: translateY(-2px);
+      box-shadow: 0 8px 24px var(--accent-glow);
+    }
+  </style>
 </head>
 <body>
   <div class="bg-3d">
-    <div class="shape"></div><div class="shape"></div><div class="shape"></div>
-    <div class="shape"></div><div class="shape"></div><div class="shape"></div>
+    <canvas id="galaxy-canvas" style="position: absolute; top:0; left:0; width:100%; height:100%;"></canvas>
   </div>
 
   <div class="auth-container">
@@ -60,7 +140,30 @@
     </div>
   </div>
 
+  <!-- Success Popup Modal -->
+  <div class="popup-overlay" id="success-popup">
+    <div class="popup-card">
+      <div class="popup-icon">✅</div>
+      <div class="popup-title">Registration Successful!</div>
+      <div class="popup-message">
+        Your account has been created successfully.<br>
+        Please wait for an <strong>admin to approve</strong> your account before you can sign in.
+      </div>
+      <div class="popup-hint">
+        <span class="dot"></span>
+        Check back later to log in
+      </div>
+      <a href="/index.html" class="btn-goto-login">
+        ← Go to Login
+      </a>
+    </div>
+  </div>
+
   <script>
+    // Apply saved theme
+    const savedTheme = localStorage.getItem('aem_theme');
+    if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+
     const token = localStorage.getItem('aem_token');
     if (token) {
       fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token } })
@@ -95,9 +198,8 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
 
-        localStorage.setItem('aem_token', data.token);
-        localStorage.setItem('aem_user', JSON.stringify(data.user));
-        window.location.href = '/dashboard.html';
+        // Show success popup instead of auto-login
+        document.getElementById('success-popup').classList.add('show');
       } catch (err) {
         errorEl.textContent = err.message;
         errorEl.classList.add('show');
@@ -106,5 +208,6 @@
       }
     });
   </script>
+  <script src="/js/galaxy.js"></script>
 </body>
 </html>
